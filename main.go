@@ -2,8 +2,10 @@ package main
 
 import (
 	"DDOS_ARMY/antena"
+	"DDOS_ARMY/doss"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -25,9 +27,11 @@ func main() {
 		}
 	} else if *isClient {
 		fmt.Println("Running as client")
-		// Start the client
+		//add test client
+		client := doss.NewDefaultClient()
+		response := client.Ping("http://127.0.0.1", 8080)
+		log.Print(response)
 	} else {
-		// Print the Usage message and exit
 		flag.Usage()
 		os.Exit(1)
 	}
