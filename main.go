@@ -5,6 +5,9 @@ import (
 	"DDOS_ARMY/server"
 	"flag"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -14,30 +17,39 @@ func main() {
 	cf := flag.Bool("client", false, "run as client")
 
 	flag.Parse()
+
 	if *sf {
 		server.StartServer("127.0.0.1", "8080")
 	}
 	if *cf {
 		c := client.GetClient()
+
+		//handle ctrl+c and control+d signal
+		exitChan := make(chan bool)
+
+		// Handle signals in a separate goroutine
+		go func(cl *client.Client) {
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+			<-c // Wait for a signal to be received
+
+			// Go out from camp
+			cl.LeaveCamp()
+			exitChan <- true // Signal that the program should exit
+		}(c)
+
 		for {
-			fmt.Println(c)
-			//ping server
-			res, _ := c.Ping()
-			fmt.Println(res)
-			//get camp info
-			res, _ = c.GetCampInfo()
-			fmt.Println(res)
-
-			//join camp
-			res, err := c.JoinCamp()
-			if err != nil {
-				panic(err)
+			select {
+			case <-exitChan:
+				return
+			default:
 			}
-			fmt.Println(res)
-			res, _ = c.GetCampInfo()
-			fmt.Println(res)
 
-			fmt.Println(c.ReceiveOrder())
+			c.JoinCamp()
+
+			res, _ := c.LeaveCamp()
+			fmt.Print(res)
+
 			var input string
 			fmt.Scanln(&input)
 		}

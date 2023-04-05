@@ -11,6 +11,7 @@ type Leader struct {
 }
 type Soldier struct {
 	Client
+	Ip string
 }
 
 var instance *Camp
@@ -26,19 +27,19 @@ type Camp struct {
 	Soldiers []Soldier
 }
 
-func NewCamp(leaderName string) Camp {
+func NewCamp(leaderName string) *Camp {
 	once.Do(func() {
 		instance = &Camp{
 			Leader: Leader{Client{Name: leaderName}},
 		}
 	})
-	return *instance
+	return instance
 }
 
 func GetCamp() *Camp {
 	if instance == nil {
 		c := NewCamp("default")
-		return &c
+		return c
 	}
 	return instance
 }
@@ -49,4 +50,23 @@ func (c *Camp) SetLeader(l Leader) {
 
 func (c *Camp) AddSoldier(s Soldier) {
 	c.Soldiers = append(c.Soldiers, s)
+}
+
+func (c *Camp) RemoveSoldier(ip string) bool {
+	for i, sl := range c.Soldiers {
+		if sl.Ip == ip {
+			c.Soldiers = append(c.Soldiers[:i], c.Soldiers[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Camp) IsSoldierInCamp(ip string) bool {
+	for _, sl := range c.Soldiers {
+		if sl.Ip == ip {
+			return true
+		}
+	}
+	return false
 }

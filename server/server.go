@@ -44,7 +44,17 @@ func Camp(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		sl.Ip = r.RemoteAddr
+
+		//check if soldier is already in camp
+		if c.IsSoldierInCamp(sl.Ip) {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("You are already in the camp"))
+			return
+		}
+
 		c.AddSoldier(sl)
+
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte("ok"))
 		log.Println("Soldier joined camp: ", sl.Name, "have ip ", r.RemoteAddr)
@@ -61,6 +71,26 @@ func Camp(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+}
+
+func LeaveCamp(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/leave" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	if r.Method != "GET" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	c := camp.GetCamp()
+	if !c.RemoveSoldier(r.RemoteAddr) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("You are not in the camp"))
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte("you left the camp"))
+	log.Println("Soldier left camp: ", "have ip ", r.RemoteAddr)
 }
 
 func Order(w http.ResponseWriter, r *http.Request) {
@@ -97,5 +127,6 @@ func StartServer(address, port string) {
 	http.HandleFunc("/ping", Ping)
 	http.HandleFunc("/camp", Camp)
 	http.HandleFunc("/order", Order)
+	http.HandleFunc("/leave", LeaveCamp)
 	http.ListenAndServe(address+":"+port, nil)
 }
