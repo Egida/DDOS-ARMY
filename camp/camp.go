@@ -23,14 +23,16 @@ type JsonCamp struct {
 }
 
 type Camp struct {
-	Leader   Leader
-	Soldiers []Soldier
+	Leader       Leader
+	Soldiers     []Soldier
+	VictimServer string
 }
 
-func NewCamp(leaderName string) *Camp {
+func NewCamp(leaderName string, victimServer string) *Camp {
 	once.Do(func() {
 		instance = &Camp{
-			Leader: Leader{Client{Name: leaderName}},
+			Leader:       Leader{Client{Name: leaderName}},
+			VictimServer: victimServer,
 		}
 	})
 	return instance
@@ -38,7 +40,7 @@ func NewCamp(leaderName string) *Camp {
 
 func GetCamp() *Camp {
 	if instance == nil {
-		c := NewCamp("default")
+		c := NewCamp("default", "http://localhost:8080")
 		return c
 	}
 	return instance

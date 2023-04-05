@@ -56,7 +56,7 @@ func Camp(w http.ResponseWriter, r *http.Request) {
 		c.AddSoldier(sl)
 
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("ok"))
+		w.Write([]byte(c.VictimServer))
 		log.Println("Soldier joined camp: ", sl.Name, "have ip ", r.RemoteAddr)
 
 	} else if r.Method == "GET" {
@@ -109,6 +109,8 @@ func Order(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		orderList.PushFront(order)
+		log.Printf("Leader sent %v order\n", order)
+
 	} else if r.Method == "GET" {
 		if orderList.Len() == 0 {
 			w.Write([]byte(NOTHING))

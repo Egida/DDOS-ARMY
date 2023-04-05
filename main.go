@@ -1,13 +1,13 @@
 package main
 
 import (
+	"DDOS_ARMY/camp"
 	"DDOS_ARMY/client"
 	"DDOS_ARMY/server"
 	"flag"
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
-	"syscall"
 )
 
 func main() {
@@ -19,39 +19,26 @@ func main() {
 	flag.Parse()
 
 	if *sf {
-		server.StartServer("127.0.0.1", "8080")
+		log.Println("Server started")
+		log.Println("Server is listening on port 8080")
+		camp.NewCamp("#XORbit", "127.0.0.1:22")
+		log.Println("camp create by leader : ", camp.GetCamp().Leader.Name)
+		server.StartServer("0.0.0.0", "8080")
 	}
 	if *cf {
 		c := client.GetClient()
-
-		//handle ctrl+c and control+d signal
-		exitChan := make(chan bool)
-
-		// Handle signals in a separate goroutine
-		go func(cl *client.Client) {
-			c := make(chan os.Signal, 1)
-			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-			<-c // Wait for a signal to be received
-
-			// Go out from camp
-			cl.LeaveCamp()
-			exitChan <- true // Signal that the program should exit
-		}(c)
-
-		for {
-			select {
-			case <-exitChan:
-				return
-			default:
-			}
-
-			c.JoinCamp()
-
-			res, _ := c.LeaveCamp()
-			fmt.Print(res)
-
-			var input string
-			fmt.Scanln(&input)
+		log.Println("trying Joining camp ", c.TargetServer, "...")
+		_, err := c.JoinCamp()
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
 		}
+		log.Println("Joined camp ", c.TargetServer)
+		interrupt := make(chan os.Signal, 1)
+		signal.Notify(interrupt, os.Interrupt)
+		go c.ListenToOrders()
+		<-interrupt
+		log.Println("Interrupt signal received, stopping...")
+		c.LeaveCamp()
 	}
 }

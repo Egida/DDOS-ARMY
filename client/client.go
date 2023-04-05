@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"sync"
+	"time"
 )
 
 const (
@@ -25,6 +27,7 @@ type Client struct {
 	Name             string
 	HttpClientDriver http.Client
 	TargetServer     string
+	VictimServer     string
 }
 
 func NewDefaultClient() *Client {
@@ -90,7 +93,12 @@ func (c *Client) Post(url string, data interface{}) (interface{}, error) {
 
 func (c *Client) JoinCamp() (interface{}, error) {
 	jc := JsonClient{Name: c.Name}
-	return c.Post("/camp", jc)
+	resp, err := c.Post("/camp", jc)
+	if err != nil {
+		return nil, err
+	}
+	c.VictimServer = resp.(string)
+	return resp, nil
 }
 
 func (c *Client) GetCampInfo() (interface{}, error) {
@@ -112,14 +120,15 @@ func (c *Client) ListenToOrders() {
 			panic(err)
 		}
 		if order == ATTACK {
-			// start DDOS attack
+			log.Printf("DDOS attack on %s", c.VictimServer)
 		}
 		if order == STOP {
-			// stop DDOS attack
+			log.Printf("DDOS attack on %s stopped", c.TargetServer)
 		}
 		if order == NOTHING {
-			// do nothing
+			log.Printf("No order received")
 		}
+		time.Sleep(3 * time.Second)
 	}
 }
 
