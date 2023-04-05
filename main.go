@@ -1,38 +1,45 @@
 package main
 
 import (
-	"DDOS_ARMY/antena"
-	"DDOS_ARMY/doss"
+	"DDOS_ARMY/client"
+	"DDOS_ARMY/server"
 	"flag"
 	"fmt"
-	"log"
-	"os"
 )
 
 func main() {
-	isServer := flag.Bool("server", false, "run as server")
-	isClient := flag.Bool("client", false, "run as client")
-	port := flag.Int("port", 8080, "port number")
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS]\n\n", os.Args[0])
-		fmt.Fprintln(os.Stderr, "OPTIONS:")
-		flag.PrintDefaults()
-	}
+	// -server
+	sf := flag.Bool("server", false, "run as server")
+	// -client
+	cf := flag.Bool("client", false, "run as client")
+
 	flag.Parse()
-	if *isServer {
-		fmt.Printf("Running as server on port %d\n", *port)
-		err := antena.StartServer(*port)
-		if err != nil {
-			return
+	if *sf {
+		server.StartServer("127.0.0.1", "8080")
+	}
+	if *cf {
+		c := client.GetClient()
+		for {
+			fmt.Println(c)
+			//ping server
+			res, _ := c.Ping()
+			fmt.Println(res)
+			//get camp info
+			res, _ = c.GetCampInfo()
+			fmt.Println(res)
+
+			//join camp
+			res, err := c.JoinCamp()
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(res)
+			res, _ = c.GetCampInfo()
+			fmt.Println(res)
+
+			fmt.Println(c.ReceiveOrder())
+			var input string
+			fmt.Scanln(&input)
 		}
-	} else if *isClient {
-		fmt.Println("Running as client")
-		//add test client
-		client := doss.NewDefaultClient()
-		response := client.Ping("http://127.0.0.1", 8080)
-		log.Print(response)
-	} else {
-		flag.Usage()
-		os.Exit(1)
 	}
 }
