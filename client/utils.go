@@ -83,7 +83,19 @@ func PrintBanner() {
 	⢸⣿⠿⠟⠋⠉⠀⢀⣾⡿⠉⠀⠈⠸⣿⣧⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 	⠀⠀⠀⠀⠀⠀⠀⠀⠉⠁⠀⠀⠀⠀⠹⣿⣷⣤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 	⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
 `
+	c :=
+		`
+ ☻__►╦╤─ https://discord.gg/g9y7D3xCab     
+/▌
+/ \
+`
+	// c to FgCyan
+	c = color.CyanString(c)
+	b += c
+	b += color.MagentaString("  ⚡by Malwarize")
+	b += "\n"
 	//coloring the banner
 	b = strings.Replace(b, "⢸", color.New(color.FgMagenta).Sprintf("⢸"), -1)
 	b = strings.Replace(b, "⣿", color.New(color.FgBlue).Sprintf("⣿"), -1)
