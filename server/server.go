@@ -56,7 +56,7 @@ func Camp(w http.ResponseWriter, r *http.Request) {
 		//check if soldier is already in camp
 		if c.IsSoldierInCamp(sl.Name) {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("this soldier is name already in the camp"))
+			w.Write([]byte("NO"))
 			return
 		}
 
