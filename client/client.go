@@ -30,10 +30,6 @@ type Client struct {
 	VictimServer     string
 }
 
-func NewDefaultClient() *Client {
-	return NewClient("default", &http.Client{}, "http://localhost:8080")
-}
-
 func NewClient(name string, clientDriver *http.Client, targetServer string) *Client {
 	once.Do(func() {
 		instance = &Client{
@@ -42,14 +38,6 @@ func NewClient(name string, clientDriver *http.Client, targetServer string) *Cli
 			TargetServer:     targetServer,
 		}
 	})
-	return instance
-}
-
-func GetClient() *Client {
-	if instance == nil {
-		c := NewClient("default", &http.Client{}, "http://localhost:8080")
-		return c
-	}
 	return instance
 }
 
@@ -69,13 +57,22 @@ func (c *Client) Get(url string, params string) (interface{}, error) {
 	return jr, err
 }
 
-func (c *Client) Post(url string, data interface{}) (interface{}, error) {
+func (c *Client) Post(url string, data interface{}, headers string) (interface{}, error) {
 
 	b, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.HttpClientDriver.Post(c.TargetServer+url, "application/json", bytes.NewReader(b))
+
+	req, err := http.NewRequest("POST", c.TargetServer+url, bytes.NewReader(b))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", headers)
+
+	resp, err := c.HttpClientDriver.Do(req)
+
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +90,7 @@ func (c *Client) Post(url string, data interface{}) (interface{}, error) {
 
 func (c *Client) JoinCamp() (interface{}, error) {
 	jc := JsonClient{Name: c.Name}
-	resp, err := c.Post("/camp", jc)
+	resp, err := c.Post("/camp", jc, "")
 	if err != nil {
 		return nil, err
 	}
@@ -141,5 +138,5 @@ func (c *Client) LeaveCamp() (interface{}, error) {
 }
 
 func (c *Client) MakeOrder(order string, secretCode string) (interface{}, error) {
-	return c.Post("/order", order)
+	return c.Post("/order", order, "Bearer "+secretCode)
 }
