@@ -28,10 +28,15 @@ type JsonCamp struct {
 	Soldiers []Soldier `json:"soldiers"`
 }
 
+const NOTHING = "nothing"
+const ATTACK = "attack"
+const STOP = "stop"
+
 type Camp struct {
 	Leader       Leader
 	Soldiers     []Soldier
 	VictimServer string
+	Status       string
 }
 
 func NewCamp(leaderName string, victimServer string) *Camp {
@@ -39,6 +44,7 @@ func NewCamp(leaderName string, victimServer string) *Camp {
 		instance = &Camp{
 			Leader:       Leader{Client{Name: leaderName}},
 			VictimServer: victimServer,
+			Status:       NOTHING,
 		}
 	})
 	return instance
@@ -87,6 +93,9 @@ func (c *Camp) Equals(other Camp) bool {
 		return false
 	}
 	if len(c.Soldiers) != len(other.Soldiers) {
+		return false
+	}
+	if c.Status != other.Status {
 		return false
 	}
 	for i, sl := range c.Soldiers {

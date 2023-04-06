@@ -9,6 +9,7 @@ import (
 )
 
 func MapToCampInfo(m map[string]interface{}) camp.Camp {
+
 	// Cast the map to Camp
 	c := camp.Camp{
 		Leader: camp.Leader{
@@ -16,6 +17,10 @@ func MapToCampInfo(m map[string]interface{}) camp.Camp {
 		},
 		Soldiers:     make([]camp.Soldier, 0),
 		VictimServer: m["VictimServer"].(string),
+		Status:       strings.ToUpper(m["Status"].(string)),
+	}
+	if m["Soldiers"] == nil {
+		return c
 	}
 
 	soldiers := m["Soldiers"].([]interface{})
@@ -99,11 +104,12 @@ func DisplayCampInfo(cp camp.Camp) {
 	leader := cp.Leader.Client.Name
 	soldiers := cp.Soldiers
 	victimServer := cp.VictimServer
-
+	status := cp.Status
 	color.Yellow("Victim Server: " + victimServer)
 	color.Green("Leader: " + leader)
 	color.White("Soldiers: ")
 	for _, soldier := range soldiers {
 		color.Cyan("    " + soldier.Name + "  - " + soldier.Ip)
 	}
+	color.Yellow("Status: " + status)
 }

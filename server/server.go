@@ -143,7 +143,9 @@ func Order(w http.ResponseWriter, r *http.Request) {
 		}
 		orderList.PushFront(order)
 		log.Printf("Leader sent %v order\n", order)
-
+		cp := camp.GetCamp()
+		cp.Status = order
+		w.Write([]byte("OK"))
 	} else if r.Method == "GET" {
 		if orderList.Len() == 0 {
 			w.Write([]byte(NOTHING))
@@ -154,6 +156,7 @@ func Order(w http.ResponseWriter, r *http.Request) {
 
 		name := r.URL.Query().Get("name")
 		c := camp.GetCamp()
+
 		sl := c.GetSoldier(name)
 		if sl == nil {
 			w.Write([]byte("You are not in the camp"))

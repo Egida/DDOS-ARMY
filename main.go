@@ -114,38 +114,69 @@ func main() {
 			orderCmd.Usage()
 			os.Exit(1)
 		}
-		if orderOrder == "" {
-			color.Red("Error: missing mandatory argument: order")
-			orderCmd.Usage()
-			os.Exit(1)
-		}
-		if orderOrder != "attack" && orderOrder != "A" && orderOrder != "stop" && orderOrder != "S" && orderOrder != "nothing" && orderOrder != "N" {
-			color.Red("Error: invalid order: %s", orderOrder)
-			orderCmd.Usage()
-			os.Exit(1)
-		}
-		if orderOrder == "A" {
-			orderOrder = "attack"
-		}
-		if orderOrder == "S" {
-			orderOrder = "stop"
-		}
-		if orderOrder == "N" {
-			orderOrder = "nothing"
-		}
 
-		// send order to server
-		cl := client.NewClient("ORDER ", &http.Client{Transport: &http.Transport{MaxIdleConns: 1}}, orderConnectHost)
-		m, err := cl.MakeOrder(strings.ToUpper(orderOrder), orderSecretCode)
+		cl := client.NewClient(clientName, &http.Client{Transport: &http.Transport{MaxIdleConns: 1}}, orderConnectHost)
+		m, err := cl.MakeOrder(strings.ToUpper(camp.NOTHING), orderSecretCode)
+		if m != "OK" {
+			color.Red("Error: " + m.(string))
+			os.Exit(1)
+		}
 		if err != nil {
 			color.Red("Error: " + err.Error())
 			os.Exit(1)
 		}
-		message := m.(string)
-		if message == "Unauthorized\n" {
-			color.Red("Error: " + message)
-			os.Exit(1)
+		var prevCamp camp.Camp
+		var order string
+
+		go func() {
+			for {
+				i, err := cl.GetCampInfo()
+				if err != nil {
+					color.Red("You can't get the camp info, the leader server is not available")
+					os.Exit(1)
+				}
+
+				cp := client.MapToCampInfo(i.(map[string]interface{}))
+				if !cp.Equals(prevCamp) {
+					//clear the screen
+					fmt.Print("\033[H\033[2J")
+					client.PrintBanner()
+					client.DisplayCampInfo(cp)
+					fmt.Println("(attack/a, stop/s, nothing/n):")
+					prevCamp = cp
+				}
+				time.Sleep(3 * time.Second)
+			}
+		}()
+		for {
+			fmt.Scanln(&order)
+			//order to Upper
+			order = strings.ToUpper(order)
+			if order == "A" {
+				order = "ATTACK"
+			}
+			if order == "S" {
+				order = "STOP"
+			}
+			if order == "N" {
+				order = "NOTHING"
+			}
+			if order != "ATTACK" && order != "STOP" && order != "NOTHING" {
+				color.Red("Error: invalid order: %s", order)
+				continue
+			}
+
+			m, err := cl.MakeOrder(strings.ToUpper(order), orderSecretCode)
+			if err != nil {
+				color.Red("Error: " + err.Error())
+				os.Exit(1)
+			}
+			message := m.(string)
+			if message != "OK" {
+				color.Red("Error: " + message)
+				os.Exit(1)
+			}
+			color.Green("Order sent Successfully: " + order)
 		}
-		color.Green("Order sent Successfully: " + orderOrder)
 	}
 }
