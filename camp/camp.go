@@ -78,7 +78,7 @@ func (c *Camp) IsSoldierInCamp(name string) bool {
 	return false
 }
 
-func (c Camp) Equals(other Camp) bool {
+func (c *Camp) Equals(other Camp) bool {
 	if c.VictimServer != other.VictimServer {
 		return false
 	}
@@ -105,6 +105,16 @@ func (c *Camp) GetSoldier(name string) *Soldier {
 	return nil
 }
 
+func (c *Camp) ScanAndRemoveTimeOutedSoldiers() {
+	for _, sl := range c.Soldiers {
+		log.Println("Soldier ", sl.Name, " last order request time: ", sl.LastOrderRequestTime)
+		if sl.isTimeOutedSoldier() {
+			c.RemoveSoldier(sl.Name)
+			log.Printf("Soldier %s is timeouted and removed from camp", sl.Name)
+		}
+	}
+}
+
 func (s *Soldier) isTimeOutedSoldier() bool {
 	if s.LastOrderRequestTime.IsZero() {
 		s.LastOrderRequestTime = time.Now()
@@ -116,15 +126,6 @@ func (s *Soldier) UpdateLastOrderRequestTime() {
 	(*s).LastOrderRequestTime = time.Now()
 }
 
-func (c *Camp) ScanAndRemoveTimeOutedSoldiers() {
-	for _, sl := range c.Soldiers {
-		log.Println("Soldier ", sl.Name, " last order request time: ", sl.LastOrderRequestTime)
-		if sl.isTimeOutedSoldier() {
-			c.RemoveSoldier(sl.Name)
-			log.Printf("Soldier %s is timeouted and removed from camp", sl.Name)
-		}
-	}
-}
 func (s *Soldier) GetLastOrderRequestTime() time.Time {
 	return s.LastOrderRequestTime
 }
