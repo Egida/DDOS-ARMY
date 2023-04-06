@@ -119,14 +119,15 @@ func LeaveCamp(w http.ResponseWriter, r *http.Request) {
 }
 
 func Order(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Order request from %s", r.RemoteAddr)
 	if r.URL.Path != "/order" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	if r.Method == "POST" {
 		authHeader := r.Header.Get("Authorization")
-		if authHeader != "Bearer "+leaderCode {
+
+		sBearer := "Bearer " + leaderCode
+		if authHeader != sBearer {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -135,6 +136,7 @@ func Order(w http.ResponseWriter, r *http.Request) {
 		defer b.Close()
 		orderb, _ := io.ReadAll(b)
 		order := string(orderb)
+		order = order[1 : len(order)-1]
 		if order != ATTACK && order != STOP && order != NOTHING {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -172,7 +174,6 @@ func Order(w http.ResponseWriter, r *http.Request) {
 		}
 
 		sl.UpdateLastOrderRequestTime()
-		log.Println(name, "updated  ", sl.GetLastOrderRequestTime())
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return

@@ -9,6 +9,7 @@ import (
 	"github.com/fatih/color"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -118,11 +119,33 @@ func main() {
 			orderCmd.Usage()
 			os.Exit(1)
 		}
-		if orderOrder != "ATTACK" && orderOrder != "A" && orderOrder != "STOP" && orderOrder != "S" && orderOrder != "NOTHING" && orderOrder != "N" {
+		if orderOrder != "attack" && orderOrder != "A" && orderOrder != "stop" && orderOrder != "S" && orderOrder != "nothing" && orderOrder != "N" {
 			color.Red("Error: invalid order: %s", orderOrder)
 			orderCmd.Usage()
 			os.Exit(1)
 		}
+		if orderOrder == "A" {
+			orderOrder = "attack"
+		}
+		if orderOrder == "S" {
+			orderOrder = "stop"
+		}
+		if orderOrder == "N" {
+			orderOrder = "nothing"
+		}
 
+		// send order to server
+		cl := client.NewClient("ORDER ", &http.Client{Transport: &http.Transport{MaxIdleConns: 1}}, orderConnectHost)
+		m, err := cl.MakeOrder(strings.ToUpper(orderOrder), orderSecretCode)
+		if err != nil {
+			color.Red("Error: " + err.Error())
+			os.Exit(1)
+		}
+		message := m.(string)
+		if message == "Unauthorized\n" {
+			color.Red("Error: " + message)
+			os.Exit(1)
+		}
+		color.Green("Order sent Successfully: " + orderOrder)
 	}
 }

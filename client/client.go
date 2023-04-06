@@ -138,5 +138,6 @@ func (c *Client) LeaveCamp() (interface{}, error) {
 }
 
 func (c *Client) MakeOrder(order string, secretCode string) (interface{}, error) {
+
 	return c.Post("/order", order, "Bearer "+secretCode)
 }

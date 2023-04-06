@@ -103,11 +103,7 @@ func DisplayCampInfo(cp camp.Camp) {
 	color.Yellow("Victim Server: " + victimServer)
 	color.Green("Leader: " + leader)
 	color.White("Soldiers: ")
-	for index, soldier := range soldiers {
-		//prevent the last one to print new line
-		if index == len(soldiers)-1 {
-			fmt.Print(color.CyanString("    " + soldier.Name + "  - " + soldier.Ip))
-		}
+	for _, soldier := range soldiers {
 		color.Cyan("    " + soldier.Name + "  - " + soldier.Ip)
 	}
 }

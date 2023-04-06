@@ -13,6 +13,7 @@ type Client struct {
 type Leader struct {
 	Client
 }
+
 type Soldier struct {
 	Client
 	Ip                   string
@@ -107,7 +108,6 @@ func (c *Camp) GetSoldier(name string) *Soldier {
 
 func (c *Camp) ScanAndRemoveTimeOutedSoldiers() {
 	for _, sl := range c.Soldiers {
-		log.Println("Soldier ", sl.Name, " last order request time: ", sl.LastOrderRequestTime)
 		if sl.isTimeOutedSoldier() {
 			c.RemoveSoldier(sl.Name)
 			log.Printf("Soldier %s is timeouted and removed from camp", sl.Name)
